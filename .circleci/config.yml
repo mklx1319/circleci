@@ -16,7 +16,6 @@ jobs:
           - v1-dependencies-{{ checksum "composer.json" }}
           # fallback to using the latest cache if no exact match is found
           - v1-dependencies-
-
       - run: composer install -n --prefer-dist
       - save_cache:
           paths:
@@ -24,7 +23,7 @@ jobs:
           key: v1-dependencies-{{ checksum "composer.json" }}
   ship:
     docker:
-      - image: circleci/node:8.11.1-stretch
+      - image: circleci/php:7.1-browsers
     working_directory: ~/repo  
     steps:
       - checkout
@@ -33,14 +32,34 @@ jobs:
             - v1-dependencies-{{ checksum "package.json" }}
             # fallback to using the latest cache if no exact match is found
             - v1-dependencies-
-      - run: npm install
+      - run: composer install -n --prefer-dist
       - save_cache:
           paths:
-            - node_modules
-          key: v1-dependencies-{{ checksum "package.json" }}
-      - setup_remote_docker
-      - run: docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+            - ./vendor
+          key: v1-dependencies-{{ checksum "composer.json" }}
+      # This should go into custom primary image, here's only for the sake of explanation
       - run:
-          name: "Build docker image and push to docker hub"
+          name: Install Docker Compose
           command: |
-            echo "This is ${CIRCLE_BRANCH}"
+            set -x
+            curl -L https://github.com/docker/compose/releases/download/1.11.2/docker-compose-`uname -s`-`uname -m` > /usr/local/bin/docker-compose
+            chmod +x /usr/local/bin/docker-compose
+      - run:
+          name: Build service
+          command: make
+
+      - run:
+          name: Start container and verify it's working
+          command: |
+            set -x
+            docker-compose up -d
+            # docker-compose will start 2 containers, the one with service will be named `contacts`
+            # we start another container with curl in the same network as `contacts`, this way we have
+            # all exposed ports from `contacts` available on `localhost` in this new container
+      - deploy:
+          name: Build and push Docker image
+          command: |
+            TAG="0.1.${CIRCLE_BUILD_NUM}"
+            docker build -t mklx1319/test-yii:$TAG .
+            docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+            docker push mklx1319/test-yii:$TAG
