@@ -34,8 +34,8 @@ jobs:
             - ./vendor
           key: v1-dependencies-{{ checksum "composer.json" }}
       # This should go into custom primary image, here's only for the sake of explanation
-      - run: docker ps
-      - run: docker-compose up --build
+      - run: sudo docker ps
+      - run: sudo docker-compose up --build
       - run:
           name: Build and push Docker image
           command: |
