@@ -63,7 +63,7 @@ jobs:
             docker build -t mklx1319/test-yii:$TAG .
             docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
             docker push mklx1319/test-yii:$TAG
-            workflows:
+workflows:
   version: 2
   build_test_ship_deploy:
     jobs:
