@@ -6,16 +6,8 @@ version: 2
 jobs:
   build:
     docker:
-      # specify the version you desire here
       - image: circleci/php:7.1-browsers
-      
-      # Specify service dependencies here if necessary
-      # CircleCI maintains a library of pre-built images
-      # documented at https://circleci.com/docs/2.0/circleci-images/
-      # - image: circleci/mysql:9.4
-
     working_directory: ~/repo
-
     steps:
       - checkout
       # Download and cache dependencies
@@ -30,22 +22,25 @@ jobs:
           paths:
             - ./vendor
           key: v1-dependencies-{{ checksum "composer.json" }}
-        
-      # run tests!
-      - run: docker login -u $DOCKER_USER -p $DOCKER_PASS
+  ship:
+    docker:
+      - image: circleci/node:8.11.1-stretch
+    working_directory: ~/repo  
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "package.json" }}
+            # fallback to using the latest cache if no exact match is found
+            - v1-dependencies-
+      - run: npm install
+      - save_cache:
+          paths:
+            - node_modules
+          key: v1-dependencies-{{ checksum "package.json" }}
+      - setup_remote_docker
+      - run: docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
       - run:
           name: "Build docker image and push to docker hub"
           command: |
-            # if [ "${CIRCLE_BRANCH}" == "master" ]; then
-            #   cp Dockerfile.production Dockerfile
-            #   docker build -t ima8/example-nodejs-circle:latest .
-            #   docker build -t ima8/example-nodejs-circle:${CIRCLE_SHA1} .
-            #   docker push ima8/example-nodejs-circle:latest
-            #   docker push ima8/example-nodejs-circle:${CIRCLE_SHA1}
-            # elif [ "${CIRCLE_BRANCH}" == "staging" ]; then
-            #   cp Dockerfile.staging Dockerfile
-            #   docker build -t ima8/example-nodejs-circle-staging:latest .
-            #   docker push ima8/example-nodejs-circle-staging:latest
-            # else
-              echo "This is ${CIRCLE_BRANCH}"
-            # fi
+            echo "This is ${CIRCLE_BRANCH}"
