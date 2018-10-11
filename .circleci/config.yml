@@ -68,6 +68,4 @@ jobs:
   build_test_ship_deploy:
     jobs:
       - build
-      - ship:
-          requires:
-            - build
+  
